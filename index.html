@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  h1 {
+    color: #e0e0e0;
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 6px;
+    border: none;
+    border-radius: 10px;
+    background: #16213e;
+    color: #888;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    background: #0f3460;
+    color: #e94560;
+  }
+
+  .panel {
+    display: none;
+    background: #16213e;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  .panel.active { display: block; }
+
+  /* ── Basic Calculator ── */
+  .display {
+    background: #0d1b2a;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    text-align: right;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .display .expr {
+    color: #555;
+    font-size: 14px;
+    min-height: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .display .val {
+    color: #e0e0e0;
+    font-size: 36px;
+    font-weight: 300;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  button.btn {
+    padding: 18px 0;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.1s;
+    user-select: none;
+  }
+
+  button.btn:active { transform: scale(0.93); filter: brightness(0.85); }
+
+  .btn-num   { background: #1a2744; color: #e0e0e0; }
+  .btn-op    { background: #0f3460; color: #e94560; }
+  .btn-eq    { background: #e94560; color: #fff; }
+  .btn-fn    { background: #0a2240; color: #6ab3f3; }
+  .btn-zero  { grid-column: span 2; }
+
+  /* ── Shared tool styles ── */
+  .tool-group {
+    background: #0d1b2a;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .tool-group label {
+    display: block;
+    color: #888;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .tool-input {
+    flex: 1;
+    min-width: 100px;
+    background: #16213e;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 16px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .tool-input:focus { border-color: #e94560; }
+
+  .tool-input::placeholder { color: #3a3a5a; }
+
+  .pct-input {
+    width: 80px;
+    flex: none;
+  }
+
+  .tool-btn {
+    padding: 10px 16px;
+    background: #e94560;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s;
+    white-space: nowrap;
+  }
+
+  .tool-btn:hover { filter: brightness(1.1); }
+  .tool-btn.secondary { background: #0f3460; color: #6ab3f3; }
+
+  .result-box {
+    margin-top: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid #1a2744;
+  }
+
+  .result-row:last-child { border-bottom: none; }
+
+  .result-row .rlabel { color: #888; font-size: 13px; }
+  .result-row .rval   { color: #e0e0e0; font-size: 16px; font-weight: 600; }
+  .result-row .rval.highlight { color: #e94560; font-size: 18px; }
+  .result-row .rval.green     { color: #4caf7d; font-size: 18px; }
+
+  .hint { color: #444; font-size: 12px; text-align: center; margin-top: 10px; }
+
+  .gst-rate-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+
+  .rate-btn {
+    padding: 6px 12px;
+    border: 1px solid #1e3a5f;
+    border-radius: 20px;
+    background: transparent;
+    color: #888;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .rate-btn.active, .rate-btn:hover {
+    background: #0f3460;
+    color: #6ab3f3;
+    border-color: #0f3460;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Calculator</h1>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('basic')">Basic</button>
+    <button class="tab" onclick="switchTab('margin')">Margin</button>
+    <button class="tab" onclick="switchTab('gst')">GST</button>
+  </div>
+
+  <!-- ══ BASIC CALCULATOR ══ -->
+  <div class="panel active" id="panel-basic">
+    <div class="display">
+      <div class="expr" id="expr"></div>
+      <div class="val" id="display">0</div>
+    </div>
+    <div class="buttons">
+      <button class="btn btn-fn" onclick="calcFn('AC')">AC</button>
+      <button class="btn btn-fn" onclick="calcFn('+/-')">+/−</button>
+      <button class="btn btn-fn" onclick="calcFn('%')">%</button>
+      <button class="btn btn-op" onclick="calcOp('/')">÷</button>
+
+      <button class="btn btn-num" onclick="calcNum('7')">7</button>
+      <button class="btn btn-num" onclick="calcNum('8')">8</button>
+      <button class="btn btn-num" onclick="calcNum('9')">9</button>
+      <button class="btn btn-op" onclick="calcOp('*')">×</button>
+
+      <button class="btn btn-num" onclick="calcNum('4')">4</button>
+      <button class="btn btn-num" onclick="calcNum('5')">5</button>
+      <button class="btn btn-num" onclick="calcNum('6')">6</button>
+      <button class="btn btn-op" onclick="calcOp('-')">−</button>
+
+      <button class="btn btn-num" onclick="calcNum('1')">1</button>
+      <button class="btn btn-num" onclick="calcNum('2')">2</button>
+      <button class="btn btn-num" onclick="calcNum('3')">3</button>
+      <button class="btn btn-op" onclick="calcOp('+')">+</button>
+
+      <button class="btn btn-num btn-zero" onclick="calcNum('0')">0</button>
+      <button class="btn btn-num" onclick="calcNum('.')">.</button>
+      <button class="btn btn-eq" onclick="calcEq()">=</button>
+    </div>
+  </div>
+
+  <!-- ══ MARGIN CALCULATOR ══ -->
+  <div class="panel" id="panel-margin">
+    <div class="tool-group">
+      <label>Cost Price</label>
+      <div class="input-row">
+        <input class="tool-input" id="m-cost" type="number" placeholder="e.g. 100" oninput="calcMargin()">
+      </div>
+    </div>
+
+    <div class="tool-group">
+      <label>Margin / Markup</label>
+      <div class="input-row">
+        <input class="tool-input" id="m-pct" type="number" placeholder="e.g. 30" oninput="calcMargin()">
+        <span style="color:#888">%</span>
+        <button class="tool-btn secondary" id="m-mode-btn" onclick="toggleMarginMode()">Margin</button>
+      </div>
+      <p class="hint" id="m-mode-hint">Margin = profit as % of selling price</p>
+    </div>
+
+    <div class="result-box tool-group" id="m-results" style="display:none; padding:0;">
+      <div class="result-row"><span class="rlabel">Cost Price</span><span class="rval" id="m-r-cost">—</span></div>
+      <div class="result-row"><span class="rlabel">Profit</span><span class="rval green" id="m-r-profit">—</span></div>
+      <div class="result-row"><span class="rlabel">Selling Price</span><span class="rval highlight" id="m-r-sell">—</span></div>
+      <div class="result-row"><span class="rlabel">Margin %</span><span class="rval" id="m-r-margin">—</span></div>
+      <div class="result-row"><span class="rlabel">Markup %</span><span class="rval" id="m-r-markup">—</span></div>
+    </div>
+
+    <div class="tool-group" style="margin-top:4px">
+      <label>Find Margin from Sell Price</label>
+      <div class="input-row">
+        <input class="tool-input" id="m-sell" type="number" placeholder="Sell price" oninput="calcMarginReverse()">
+        <input class="tool-input pct-input" id="m-cost2" type="number" placeholder="Cost" oninput="calcMarginReverse()">
+      </div>
+      <div class="result-box" id="m-rev-results" style="display:none; margin-top:10px;">
+        <div class="result-row"><span class="rlabel">Margin</span><span class="rval highlight" id="m-r-rev-margin">—</span></div>
+        <div class="result-row"><span class="rlabel">Markup</span><span class="rval" id="m-r-rev-markup">—</span></div>
+        <div class="result-row"><span class="rlabel">Profit</span><span class="rval green" id="m-r-rev-profit">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GST CALCULATOR ══ -->
+  <div class="panel" id="panel-gst">
+    <div class="tool-group">
+      <label>GST Rate</label>
+      <div class="gst-rate-row">
+        <button class="rate-btn" onclick="setGstRate(5)">5%</button>
+        <button class="rate-btn active" onclick="setGstRate(10)">10%</button>
+        <button class="rate-btn" onclick="setGstRate(12)">12%</button>
+        <button class="rate-btn" onclick="setGstRate(18)">18%</button>
+        <button class="rate-btn" onclick="setGstRate(28)">28%</button>
+        <input class="tool-input pct-input" id="gst-rate" type="number" value="10" placeholder="%" oninput="onGstRateInput()" style="padding:5px 10px; font-size:14px;">
+      </div>
+    </div>
+
+    <!-- Add GST -->
+    <div class="tool-group">
+      <label>Add GST to Amount (excl. GST)</label>
+      <div class="input-row">
+        <input class="tool-input" id="gst-excl" type="number" placeholder="Amount before GST" oninput="calcGstAdd()">
+      </div>
+      <div class="result-box" id="gst-add-results" style="display:none; margin-top:10px;">
+        <div class="result-row"><span class="rlabel">Excl. GST</span><span class="rval" id="g-excl">—</span></div>
+        <div class="result-row"><span class="rlabel">GST Amount</span><span class="rval green" id="g-gst-amt">—</span></div>
+        <div class="result-row"><span class="rlabel">Incl. GST (Total)</span><span class="rval highlight" id="g-incl">—</span></div>
+      </div>
+    </div>
+
+    <!-- Remove GST -->
+    <div class="tool-group">
+      <label>Remove GST from Amount (incl. GST)</label>
+      <div class="input-row">
+        <input class="tool-input" id="gst-incl" type="number" placeholder="Amount including GST" oninput="calcGstRemove()">
+      </div>
+      <div class="result-box" id="gst-rem-results" style="display:none; margin-top:10px;">
+        <div class="result-row"><span class="rlabel">Incl. GST</span><span class="rval" id="g-r-incl">—</span></div>
+        <div class="result-row"><span class="rlabel">GST Amount</span><span class="rval green" id="g-r-gst-amt">—</span></div>
+        <div class="result-row"><span class="rlabel">Excl. GST</span><span class="rval highlight" id="g-r-excl">—</span></div>
+      </div>
+    </div>
+
+    <!-- Margin + GST combined -->
+    <div class="tool-group">
+      <label>Cost → Add Margin → Add GST</label>
+      <div class="input-row">
+        <input class="tool-input" id="combo-cost" type="number" placeholder="Cost price" oninput="calcCombo()">
+        <input class="tool-input pct-input" id="combo-margin" type="number" placeholder="Margin %" oninput="calcCombo()">
+      </div>
+      <div class="result-box" id="combo-results" style="display:none; margin-top:10px;">
+        <div class="result-row"><span class="rlabel">Cost</span><span class="rval" id="c-cost">—</span></div>
+        <div class="result-row"><span class="rlabel">Sell (excl. GST)</span><span class="rval" id="c-sell">—</span></div>
+        <div class="result-row"><span class="rlabel">GST Amount</span><span class="rval green" id="c-gst">—</span></div>
+        <div class="result-row"><span class="rlabel">Final Price (incl. GST)</span><span class="rval highlight" id="c-final">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ── Basic Calculator ──
+let current = '0', operator = null, prev = null, justEvaled = false;
+
+function updateDisplay(val) {
+  let s = parseFloat(val).toString();
+  if (s.length > 12) s = parseFloat(parseFloat(val).toPrecision(10)).toString();
+  document.getElementById('display').textContent = s;
+}
+
+function calcNum(n) {
+  if (justEvaled) { current = '0'; justEvaled = false; }
+  if (n === '.' && current.includes('.')) return;
+  current = (current === '0' && n !== '.') ? n : current + n;
+  updateDisplay(current);
+}
+
+function calcOp(op) {
+  justEvaled = false;
+  if (prev !== null && operator) {
+    const r = applyOp(parseFloat(prev), operator, parseFloat(current));
+    prev = String(r); current = String(r); updateDisplay(r);
+  } else {
+    prev = current;
+  }
+  operator = op;
+  document.getElementById('expr').textContent = prev + ' ' + {'+':'+','-':'−','*':'×','/':'÷'}[op];
+  current = '0';
+}
+
+function applyOp(a, op, b) {
+  if (op === '+') return a + b;
+  if (op === '-') return a - b;
+  if (op === '*') return a * b;
+  if (op === '/') return b === 0 ? 'Error' : a / b;
+}
+
+function calcEq() {
+  if (operator === null || prev === null) return;
+  const a = parseFloat(prev), b = parseFloat(current);
+  const r = applyOp(a, operator, b);
+  document.getElementById('expr').textContent = prev + ' ' + {'+':'+','-':'−','*':'×','/':'÷'}[operator] + ' ' + current + ' =';
+  current = String(r); prev = null; operator = null;
+  updateDisplay(r); justEvaled = true;
+}
+
+function calcFn(fn) {
+  if (fn === 'AC') {
+    current = '0'; prev = null; operator = null; justEvaled = false;
+    document.getElementById('expr').textContent = '';
+    updateDisplay(0);
+  } else if (fn === '+/-') {
+    current = String(-parseFloat(current)); updateDisplay(current);
+  } else if (fn === '%') {
+    current = String(parseFloat(current) / 100); updateDisplay(current);
+  }
+}
+
+// Keyboard support for basic calc
+document.addEventListener('keydown', e => {
+  if (document.getElementById('panel-basic').classList.contains('active')) {
+    if ('0123456789.'.includes(e.key)) calcNum(e.key);
+    else if (e.key === '+') calcOp('+');
+    else if (e.key === '-') calcOp('-');
+    else if (e.key === '*') calcOp('*');
+    else if (e.key === '/') { e.preventDefault(); calcOp('/'); }
+    else if (e.key === 'Enter' || e.key === '=') calcEq();
+    else if (e.key === 'Escape') calcFn('AC');
+    else if (e.key === 'Backspace') {
+      current = current.length > 1 ? current.slice(0, -1) : '0';
+      updateDisplay(current);
+    }
+  }
+});
+
+// ── Margin Calculator ──
+let marginMode = 'margin'; // 'margin' or 'markup'
+
+function toggleMarginMode() {
+  marginMode = marginMode === 'margin' ? 'markup' : 'margin';
+  document.getElementById('m-mode-btn').textContent = marginMode === 'margin' ? 'Margin' : 'Markup';
+  document.getElementById('m-mode-hint').textContent = marginMode === 'margin'
+    ? 'Margin = profit as % of selling price'
+    : 'Markup = profit as % of cost price';
+  calcMargin();
+}
+
+function fmt(n) { return '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function fmtPct(n) { return n.toFixed(2) + '%'; }
+
+function calcMargin() {
+  const cost = parseFloat(document.getElementById('m-cost').value);
+  const pct  = parseFloat(document.getElementById('m-pct').value);
+  if (isNaN(cost) || isNaN(pct) || cost <= 0 || pct <= 0) {
+    document.getElementById('m-results').style.display = 'none'; return;
+  }
+  let sell, profit, margin, markup;
+  if (marginMode === 'margin') {
+    if (pct >= 100) return;
+    sell   = cost / (1 - pct / 100);
+    profit = sell - cost;
+    margin = pct;
+    markup = (profit / cost) * 100;
+  } else {
+    sell   = cost * (1 + pct / 100);
+    profit = sell - cost;
+    markup = pct;
+    margin = (profit / sell) * 100;
+  }
+  document.getElementById('m-r-cost').textContent   = fmt(cost);
+  document.getElementById('m-r-profit').textContent = fmt(profit);
+  document.getElementById('m-r-sell').textContent   = fmt(sell);
+  document.getElementById('m-r-margin').textContent = fmtPct(margin);
+  document.getElementById('m-r-markup').textContent = fmtPct(markup);
+  document.getElementById('m-results').style.display = 'block';
+}
+
+function calcMarginReverse() {
+  const sell = parseFloat(document.getElementById('m-sell').value);
+  const cost = parseFloat(document.getElementById('m-cost2').value);
+  if (isNaN(sell) || isNaN(cost) || sell <= 0 || cost <= 0) {
+    document.getElementById('m-rev-results').style.display = 'none'; return;
+  }
+  const profit = sell - cost;
+  const margin = (profit / sell) * 100;
+  const markup = (profit / cost) * 100;
+  document.getElementById('m-r-rev-margin').textContent = fmtPct(margin);
+  document.getElementById('m-r-rev-markup').textContent = fmtPct(markup);
+  document.getElementById('m-r-rev-profit').textContent = fmt(profit);
+  document.getElementById('m-rev-results').style.display = 'block';
+}
+
+// ── GST Calculator ──
+let gstRate = 10;
+
+function setGstRate(r) {
+  gstRate = r;
+  document.getElementById('gst-rate').value = r;
+  document.querySelectorAll('.rate-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  calcGstAdd(); calcGstRemove(); calcCombo();
+}
+
+function onGstRateInput() {
+  gstRate = parseFloat(document.getElementById('gst-rate').value) || 0;
+  document.querySelectorAll('.rate-btn').forEach(b => b.classList.remove('active'));
+  calcGstAdd(); calcGstRemove(); calcCombo();
+}
+
+function calcGstAdd() {
+  const excl = parseFloat(document.getElementById('gst-excl').value);
+  if (isNaN(excl) || excl <= 0) { document.getElementById('gst-add-results').style.display = 'none'; return; }
+  const gstAmt = excl * gstRate / 100;
+  const incl   = excl + gstAmt;
+  document.getElementById('g-excl').textContent    = fmt(excl);
+  document.getElementById('g-gst-amt').textContent = fmt(gstAmt);
+  document.getElementById('g-incl').textContent    = fmt(incl);
+  document.getElementById('gst-add-results').style.display = 'block';
+}
+
+function calcGstRemove() {
+  const incl = parseFloat(document.getElementById('gst-incl').value);
+  if (isNaN(incl) || incl <= 0) { document.getElementById('gst-rem-results').style.display = 'none'; return; }
+  const excl   = incl / (1 + gstRate / 100);
+  const gstAmt = incl - excl;
+  document.getElementById('g-r-incl').textContent    = fmt(incl);
+  document.getElementById('g-r-gst-amt').textContent = fmt(gstAmt);
+  document.getElementById('g-r-excl').textContent    = fmt(excl);
+  document.getElementById('gst-rem-results').style.display = 'block';
+}
+
+function calcCombo() {
+  const cost   = parseFloat(document.getElementById('combo-cost').value);
+  const margin = parseFloat(document.getElementById('combo-margin').value);
+  if (isNaN(cost) || isNaN(margin) || cost <= 0 || margin <= 0 || margin >= 100) {
+    document.getElementById('combo-results').style.display = 'none'; return;
+  }
+  const sell   = cost / (1 - margin / 100);
+  const gstAmt = sell * gstRate / 100;
+  const final  = sell + gstAmt;
+  document.getElementById('c-cost').textContent  = fmt(cost);
+  document.getElementById('c-sell').textContent  = fmt(sell);
+  document.getElementById('c-gst').textContent   = fmt(gstAmt);
+  document.getElementById('c-final').textContent = fmt(final);
+  document.getElementById('combo-results').style.display = 'block';
+}
+</script>
+</body>
+</html>
