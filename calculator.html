@@ -178,15 +178,18 @@
   /* ── Circle buttons ── */
   .buttons {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, 68px);
+    grid-auto-rows: 68px;
     gap: 12px;
+    justify-content: center;
   }
 
   button.btn {
-    aspect-ratio: 1;
+    width: 68px;
+    height: 68px;
     border: none;
     border-radius: 50%;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 500;
     cursor: pointer;
     transition: transform 0.1s, filter 0.1s, box-shadow 0.1s;
@@ -206,10 +209,10 @@
 
   /* Zero button spans 2 cols but stays pill-shaped */
   .btn-zero {
+    width: 148px; /* 68 + 12 + 68 */
     grid-column: span 2;
     border-radius: 999px;
-    aspect-ratio: unset;
-    padding: 0 28px;
+    padding: 0 24px;
     justify-content: flex-start;
   }
 
